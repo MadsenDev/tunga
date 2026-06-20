@@ -1,0 +1,5 @@
+import { existsSync, readFileSync, mkdirSync, writeFileSync } from "node:fs"; import path from "node:path"; import { getNested, uniqueKey } from "./keygen.js"; import type { CandidateString } from "../types/index.js";
+export function loadLocale(file:string){ return existsSync(file)? JSON.parse(readFileSync(file,"utf8")): {}; }
+export function setNested(obj:any,key:string,value:string,overwrite=false){ const parts=key.split('.'); let cur=obj; for(const p of parts.slice(0,-1)) cur=cur[p]??={}; const last=parts.at(-1)!; if(overwrite||cur[last]===undefined) cur[last]=value; }
+export function addCandidates(locale:any,candidates:CandidateString[],overwrite=false){ const added:{key:string;value:string}[]=[]; for(const c of candidates){ const key=uniqueKey(c.keySuggestion,c.text,locale); if(overwrite||getNested(locale,key)===undefined){ setNested(locale,key,c.text,overwrite); added.push({key,value:c.text}); } c.keySuggestion=key; } return {locale,added}; }
+export function writeLocale(file:string,locale:any){ mkdirSync(path.dirname(file),{recursive:true}); writeFileSync(file,JSON.stringify(locale,null,2)+"\n"); }

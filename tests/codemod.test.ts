@@ -1,0 +1,3 @@
+import { expect,it } from "vitest"; import { applyCodemod } from "../src/core/codemod.js"; import { defaultConfig } from "../src/core/config.js";
+it("wraps JSX text with t call and import",()=>{ const r=applyCodemod({source:`export function A(){return <button>Save</button>}`,config:defaultConfig,candidates:[{text:"Save",keySuggestion:"ui.save",confidence:"high"}]}); expect(r.code).toContain(`import { t } from "@/i18n"`); expect(r.code).toContain(`<button>{t("ui.save")}</button>`); });
+it("rewrites JSX attributes",()=>{ const r=applyCodemod({source:`const x=<input placeholder="Search" />`,config:defaultConfig,candidates:[{text:"Search",keySuggestion:"ui.search",confidence:"high"}],skipImport:true}); expect(r.code).toContain(`placeholder={t("ui.search")}`); });
