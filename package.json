@@ -1,0 +1,32 @@
+{
+  "name": "tunga",
+  "version": "0.1.0",
+  "description": "CLI tool for migrating hardcoded UI strings to structured i18n keys.",
+  "type": "module",
+  "bin": {
+    "tunga": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsup src/cli.ts --format esm --dts --clean",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@babel/generator": "^7.29.7",
+    "@babel/parser": "^7.29.7",
+    "@babel/traverse": "^7.29.7",
+    "@babel/types": "^7.29.7",
+    "@clack/prompts": "latest",
+    "commander": "^12.1.0",
+    "fast-glob": "latest",
+    "prettier": "latest"
+  },
+  "devDependencies": {
+    "@types/babel__generator": "^7.27.0",
+    "@types/babel__traverse": "^7.28.0",
+    "@types/node": "latest",
+    "tsup": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
+  }
+}
