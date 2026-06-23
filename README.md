@@ -114,8 +114,10 @@ src/components/Header.tsx:12  "Save"  →  ui.header.save
 
 ### JSX attributes
 
+By default, JSX attribute scanning is limited to likely user-facing attributes: `title`, `placeholder`, `alt`, `aria-label`, and `label`. Set `scan.attributeAllowlist` to your own list, or to `false` to restore broad attribute scanning.
+
 ```tsx
-<input placeholder="Search products" aria-label="Search" />
+<input placeholder="Search products" aria-label="Search" data-testid="search-input" />
 ```
 
 Candidates:
@@ -137,19 +139,52 @@ Candidate:
 src/components/SearchResults.tsx:4  "No results found"  →  ui.search_results.no_results_found
 ```
 
-### Template literals without interpolation
+### Template literals and simple interpolation
 
 ```ts
 const title = `Settings`;
+const message = `Hello ${name}`;
+const profile = `Hello ${user.name}`;
 ```
 
-Candidate:
+Candidates:
 
 ```text
-src/pages/Settings.tsx:3  "Settings"  →  ui.settings.settings
+src/pages/Settings.tsx:3  "Settings"          →  ui.settings.settings
+src/pages/Settings.tsx:4  "Hello {{name}}"    →  ui.settings.hello
+src/pages/Settings.tsx:5  "Hello {{name}}"    →  ui.settings.hello
 ```
 
-Template literals with expressions are intentionally more complex and are part of the future interpolation roadmap.
+The codemod keeps Tunga framework-agnostic and emits your configured function name, for example `t("ui.settings.hello", { name })` or `t("ui.settings.hello", { name: user.name })`. Tunga currently supports identifier and member-expression interpolations, and skips complex expressions such as function calls, arithmetic, and ternaries.
+
+
+### Mixed JSX text interpolation
+
+Tunga can combine simple JSX text and expression children into a single candidate:
+
+```tsx
+<p>Hello {user.name}, you have {count} messages</p>
+```
+
+Locale value:
+
+```json
+{
+  "ui": {
+    "profile": {
+      "summary": "Hello {{name}}, you have {{count}} messages"
+    }
+  }
+}
+```
+
+Codemod output:
+
+```tsx
+<p>{t("ui.profile.summary", { name: user.name, count })}</p>
+```
+
+Nested JSX and complex expressions are skipped initially so the migration stays predictable and reviewable.
 
 ---
 
@@ -356,6 +391,13 @@ export default {
   importKind: "named",
   keyStrategy: "path",
   namespace: "ui",
+  scan: {
+    attributeAllowlist: ["title", "placeholder", "alt", "aria-label", "label"],
+  },
+  filters: {
+    ignoreCodeLike: true,
+    ignoreShortLowercase: true,
+  },
 };
 ```
 
@@ -366,6 +408,10 @@ export default {
 Tunga tries to avoid strings that are usually not user-facing copy, including:
 
 - routes and file paths
+- technical JSX attributes outside the default allowlist
+- technical object properties such as `href`, `src`, `route`, `method`, `icon`, `variant`, and `handler`
+- code-like snippets containing patterns such as `=>`, `window.`, `==`, `);`, or function-shaped calls
+- short lowercase strings with one or two words unless the surrounding context strongly suggests UI copy
 - Tailwind-style class strings
 - CSS-like utility classes
 - URLs and email addresses
@@ -413,7 +459,6 @@ useTranslations("Settings");
 
 ### Future improvements
 
-- interpolation support
 - grouped duplicate string review
 - framework presets
 - stronger component and route awareness

@@ -12,6 +12,7 @@ export async function applyCommand(opts: {
   import?: string;
   skipImport?: boolean;
   locale?: string;
+  includeLowConfidence?: boolean;
 }) {
   startTui(opts.dryRun ? "Tunga apply preview" : "Tunga apply");
 
@@ -45,6 +46,7 @@ export async function applyCommand(opts: {
       candidates: items,
       config,
       skipImport: opts.skipImport,
+      includeLowConfidence: opts.includeLowConfidence,
     });
 
     if (!result.changed) continue;

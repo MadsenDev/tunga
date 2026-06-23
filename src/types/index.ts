@@ -1,4 +1,4 @@
-export type CandidateType = "jsx-text" | "jsx-attribute" | "string-literal" | "template-literal";
+export type CandidateType = "jsx-text" | "jsx-mixed" | "jsx-attribute" | "string-literal" | "template-literal";
 export type Confidence = "high" | "medium" | "low";
 export type KeyStrategy = "path" | "text" | "component";
 export type ImportKind = "named" | "default";
@@ -15,6 +15,7 @@ export type CandidateString = {
   confidence: Confidence;
   componentName?: string;
   reason?: string;
+  interpolations?: { name: string; expression: string }[];
 };
 
 export type TungaConfig = {
@@ -31,6 +32,7 @@ export type TungaConfig = {
     jsxAttributes: boolean;
     stringLiterals: boolean;
     templateLiterals: boolean;
+    attributeAllowlist: string[] | false;
   };
   filters: {
     minLength: number;
@@ -38,6 +40,8 @@ export type TungaConfig = {
     ignoreClassNames: boolean;
     ignoreNumbers: boolean;
     ignorePunctuationOnly: boolean;
+    ignoreCodeLike: boolean;
+    ignoreShortLowercase: boolean;
   };
 };
 

@@ -1,9 +1,9 @@
-import type { TungaConfig } from "../types/index.js";
+import type { CandidateString, TungaConfig } from "../types/index.js";
 
 const events = new Set(["click", "change", "submit", "keydown", "keyup", "focus", "blur", "input", "load", "error"]);
 const methods = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
 
-export function shouldIgnoreString(raw: string, config: TungaConfig): string | undefined {
+export function shouldIgnoreString(raw: string, config: TungaConfig, context?: { strongUi?: boolean }): string | undefined {
   const value = raw.trim();
 
   if (value.length < config.filters.minLength) return "too short";
@@ -19,7 +19,9 @@ export function shouldIgnoreString(raw: string, config: TungaConfig): string | u
   if (/^[A-Z][A-Z0-9_]+$/.test(value)) return "environment variable";
   if (events.has(value)) return "event name";
   if (/^[a-z][a-z0-9-]+(\.[a-z][a-z0-9-]+)+$/.test(value)) return "dotted key";
+  if (config.filters.ignoreCodeLike && /(=>|\bwindow\.|==|\);|\bfunction\s*\(|\w+\([^)]*\)\s*[{;]?)/.test(value)) return "code-like string";
   if (config.filters.ignoreClassNames && looksLikeClassName(value)) return "class name";
+  if (config.filters.ignoreShortLowercase && !context?.strongUi && /^[a-z][a-z\s-]*$/.test(value) && value.split(/\s+/).length <= 2) return "ambiguous short lowercase";
 
   return undefined;
 }
@@ -27,15 +29,19 @@ export function shouldIgnoreString(raw: string, config: TungaConfig): string | u
 function looksLikeClassName(value: string) {
   const parts = value.split(/\s+/);
   return (
-    parts.length > 1 &&
+    parts.length > 0 &&
     parts.every(
       (part) =>
-        /^-?([a-z][\w-]*:)*(text|font|bg|border|p|m|px|py|mx|my|w|h|flex|grid|items|justify|rounded|shadow|gap|space|block|inline|hidden|container|opacity|z|overflow|relative|absolute|fixed|sticky)-[a-z0-9_\-[\]/.%#]+$/i.test(part) ||
-        /^(flex|grid|block|inline-block|hidden|relative|absolute|fixed|sticky|sr-only|container)$/.test(part),
+        /^!?-?([a-z][\w-]*:)*(text|font|bg|border|p|m|px|py|pt|pb|pl|pr|mt|mb|ml|mr|mx|my|w|h|min-w|min-h|max-w|max-h|flex|grid|items|content|self|justify|rounded|shadow|gap|space|block|inline|hidden|container|opacity|z|overflow|relative|absolute|fixed|sticky|inset|top|bottom|left|right|leading|tracking|uppercase|lowercase|capitalize|truncate|align|decoration|underline|ring|outline|divide|place|col|row|order|basis|grow|shrink|translate|scale|rotate|duration|ease|transition|animate|cursor|select|pointer-events)-[a-z0-9_\-[\]()/.,:%#]+$/i.test(part) ||
+        /^(flex|grid|block|inline|inline-block|hidden|relative|absolute|fixed|sticky|sr-only|container|uppercase|lowercase|capitalize|truncate)$/.test(part),
     )
   );
 }
 
-export function confidenceFor(text: string) {
-  return text.length > 40 ? ("medium" as const) : ("high" as const);
+export function confidenceFor(text: string, context: Pick<CandidateString, "type"> & { strongUi?: boolean; hasInterpolation?: boolean }) {
+  if (context.type === "jsx-text" || context.type === "jsx-attribute") return "high" as const;
+  if (context.type === "jsx-mixed" || context.hasInterpolation) return "medium" as const;
+  if (context.strongUi || /^[A-Z]/.test(text)) return "medium" as const;
+  if (text.length > 40) return "medium" as const;
+  return "low" as const;
 }
