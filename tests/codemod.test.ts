@@ -36,3 +36,40 @@ it("uses location-aware matching when locations are available", () => {
   expect(result.code).toContain(`<button>Open</button>`);
   expect(result.code).toContain(`<h1>{t("ui.heading.open")}</h1>`);
 });
+
+it("rewrites template literals with interpolation variables", () => {
+  const result = applyCodemod({
+    source: "const message = `Hello ${user.name}`;",
+    config: defaultConfig,
+    skipImport: true,
+    candidates: [
+      { text: "Hello {{name}}", keySuggestion: "ui.hello", confidence: "medium", interpolations: [{ name: "name", expression: "user.name" }] },
+    ],
+  });
+
+  expect(result.code).toContain('const message = t("ui.hello", {');
+  expect(result.code).toContain('name: user.name');
+});
+
+it("rewrites mixed JSX children as one translation", () => {
+  const result = applyCodemod({
+    source: "const el=<p>Hello {user.name}, you have {count} messages</p>;",
+    config: defaultConfig,
+    skipImport: true,
+    candidates: [
+      {
+        text: "Hello {{name}}, you have {{count}} messages",
+        keySuggestion: "ui.profile.summary",
+        confidence: "medium",
+        interpolations: [
+          { name: "name", expression: "user.name" },
+          { name: "count", expression: "count" },
+        ],
+      },
+    ],
+  });
+
+  expect(result.code).toContain('<p>{t("ui.profile.summary", {');
+  expect(result.code).toContain('name: user.name');
+  expect(result.code).toContain('count');
+});

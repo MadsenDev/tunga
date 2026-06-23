@@ -31,4 +31,38 @@ const title="Dashboard"; const route="/settings"; const label=\`Settings\`; t("u
 
     expect(candidates.map((candidate) => candidate.text)).toEqual(["Visible"]);
   });
+
+  it("filters JSX attributes with the default allowlist and supports broad scanning", () => {
+    const source = `const el=<img alt="Product photo" data-testid="hero-image" title="Hero" />`;
+    expect(scanSource(source, { file: "src/App.tsx", config: defaultConfig }).map((c) => c.text)).toEqual(["Product photo", "Hero"]);
+    expect(
+      scanSource(source, { file: "src/App.tsx", config: { ...defaultConfig, scan: { ...defaultConfig.scan, attributeAllowlist: false } } }).map((c) => c.text),
+    ).toEqual(["Product photo", "hero-image", "Hero"]);
+  });
+
+  it("skips technical object properties while keeping UI-looking properties", () => {
+    const candidates = scanSource(
+      `const nav={label:"Settings", href:"/settings", icon:"gear", title:"Account settings", variant:"ghost", emptyState:"No projects yet"};`,
+      { file: "src/nav.ts", config: defaultConfig },
+    );
+    expect(candidates.map((c) => c.text)).toEqual(["Settings", "Account settings", "No projects yet"]);
+  });
+
+  it("extracts simple template literal interpolation and skips complex interpolation", () => {
+    const candidates = scanSource("const a = `Hello ${name}`; const b = `Hi ${user.name}`; const c = `Hi ${getName()}`;", {
+      file: "src/messages.ts",
+      config: defaultConfig,
+    });
+    expect(candidates.map((c) => c.text)).toEqual(["Hello {{name}}", "Hi {{name}}"]);
+    expect(candidates[1]?.interpolations).toEqual([{ name: "name", expression: "user.name" }]);
+  });
+
+  it("combines mixed JSX text with simple expressions and skips nested elements", () => {
+    const candidates = scanSource(`const el=<><p>Hello {user.name}, you have {count} messages</p><p>Hello <strong>friend</strong></p></>;`, {
+      file: "src/Profile.tsx",
+      config: defaultConfig,
+    });
+    expect(candidates.map((c) => c.text)).toContain("Hello {{name}}, you have {{count}} messages");
+    expect(candidates.map((c) => c.text)).not.toContain("Hello friend");
+  });
 });

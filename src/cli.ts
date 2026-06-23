@@ -38,6 +38,7 @@ program
   .option("--import <source>", "Translation import source")
   .option("--skip-import", "Do not add translation imports")
   .option("--locale <file>", "Locale file used for key lookup")
+  .option("--include-low-confidence", "Also rewrite low-confidence candidates")
   .action(applyCommand);
 
 program.command("check").description("Fail if hardcoded candidate strings are found").action(checkCommand);
